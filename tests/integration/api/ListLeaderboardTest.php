@@ -11,6 +11,7 @@
 
 namespace HuseyinFiliz\Leaderboard\Tests\Integration\Api;
 
+use Carbon\Carbon;
 use Flarum\Testing\integration\RetrievesAuthorizedUsers;
 use Flarum\Testing\integration\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -24,6 +25,7 @@ class ListLeaderboardTest extends TestCase
     {
         parent::setUp();
 
+        $this->extension('ramon-point-system');
         $this->extension('huseyinfiliz-leaderboard');
 
         $this->prepareDatabase([
@@ -32,15 +34,18 @@ class ListLeaderboardTest extends TestCase
                 ['id' => 3, 'username' => 'user3', 'email' => 'user3@example.com', 'is_email_confirmed' => true],
                 ['id' => 4, 'username' => 'user4', 'email' => 'user4@example.com', 'is_email_confirmed' => true],
             ],
-            'leaderboard_user_totals' => [
-                ['user_id' => 2, 'points_total' => 50],
-                ['user_id' => 3, 'points_total' => 100],
-                ['user_id' => 4, 'points_total' => 25],
+            'point_system_user_points' => [
+                ['user_id' => 2, 'balance' => 50, 'lifetime' => 50],
+                ['user_id' => 3, 'balance' => 100, 'lifetime' => 100],
+                ['user_id' => 4, 'balance' => 25, 'lifetime' => 25],
             ],
-            'leaderboard_points' => [
-                ['id' => 1, 'user_id' => 2, 'reason' => 'discussion_started', 'subject_id' => 1, 'subject_type' => 'discussion', 'created_at' => '2026-01-15 10:00:00'],
-                ['id' => 2, 'user_id' => 3, 'reason' => 'post_created', 'subject_id' => 1, 'subject_type' => 'post', 'created_at' => '2026-02-01 10:00:00'],
-                ['id' => 3, 'user_id' => 4, 'reason' => 'daily_login', 'subject_id' => null, 'subject_type' => null, 'created_at' => '2026-02-25 10:00:00'],
+            'point_system_transactions' => [
+                ['id' => 1, 'user_id' => 2, 'amount' => 50, 'reason' => 'discussion.started', 'reference_type' => 'discussion', 'reference_id' => 1, 'created_at' => '2026-01-15 10:00:00'],
+                ['id' => 2, 'user_id' => 3, 'amount' => 100, 'reason' => 'post.posted', 'reference_type' => 'post', 'reference_id' => 1, 'created_at' => '2026-02-01 10:00:00'],
+                ['id' => 3, 'user_id' => 4, 'amount' => 25, 'reason' => 'user.daily_login', 'reference_type' => 'user', 'reference_id' => 4, 'created_at' => '2026-02-25 10:00:00'],
+                ['id' => 4, 'user_id' => 2, 'amount' => 12, 'reason' => 'manual.monthly', 'reference_type' => 'user', 'reference_id' => 2, 'created_at' => Carbon::now()->startOfMonth()->addDay()],
+                ['id' => 5, 'user_id' => 3, 'amount' => 20, 'reason' => 'manual.monthly', 'reference_type' => 'user', 'reference_id' => 3, 'created_at' => Carbon::now()->startOfMonth()->addDays(2)],
+                ['id' => 6, 'user_id' => 3, 'amount' => -7, 'reason' => 'manual.monthly.revert', 'reference_type' => 'user', 'reference_id' => 3, 'created_at' => Carbon::now()->startOfMonth()->addDays(3)],
             ],
         ]);
     }
@@ -125,6 +130,23 @@ class ListLeaderboardTest extends TestCase
         $body = json_decode($response->getBody()->getContents(), true);
 
         $this->assertArrayHasKey('data', $body);
+    }
+
+    #[Test]
+    public function period_rankings_sum_point_system_transactions(): void
+    {
+        $response = $this->send(
+            $this->request('GET', '/api/leaderboard-entries')->withQueryParams([
+                'filter' => ['period' => 'monthly'],
+            ])
+        );
+
+        $body = json_decode($response->getBody()->getContents(), true);
+
+        $this->assertEquals('3', $body['data'][0]['id']);
+        $this->assertEquals(13, $body['data'][0]['attributes']['points']);
+        $this->assertEquals('2', $body['data'][1]['id']);
+        $this->assertEquals(12, $body['data'][1]['attributes']['points']);
     }
 
     #[Test]

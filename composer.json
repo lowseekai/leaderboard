@@ -1,6 +1,6 @@
 {
     "name": "huseyinfiliz/leaderboard",
-    "description": "A points-based leaderboard extension for Flarum with configurable point sources, period filtering, and podium display.",
+    "description": "A Flarum leaderboard powered by the Point System extension.",
     "keywords": [
         "flarum",
         "leaderboard",
@@ -11,22 +11,14 @@
     "type": "flarum-extension",
     "license": "MIT",
     "support": {
-        "issues": "https://github.com/huseyinfiliz/leaderboard/issues",
-        "source": "https://github.com/huseyinfiliz/leaderboard",
+        "issues": "https://github.com/lowseekai/leaderboard/issues",
+        "source": "https://github.com/lowseekai/leaderboard",
         "forum": "https://discuss.flarum.org/d/38834-leaderboard-points-based-ranking-system"
     },
     "require": {
         "php": "^8.2",
-        "flarum/core": "^2.0.0-beta"
-    },
-    "suggest": {
-        "flarum/likes": "Award points for receiving likes",
-        "flarum/tags": "Exclude discussions by tag from earning points",
-        "fof/reactions": "Award points for receiving reactions",
-        "fof/best-answer": "Award points for best answers",
-        "fof/badges": "Award points for earning badges",
-        "fof/gamification": "Award points for votes",
-        "flarum/approval": "Restored event support for approved posts"
+        "flarum/core": "^2.0.0-beta",
+        "ramon/point-system": "dev-main"
     },
     "authors": [
         {
@@ -53,16 +45,7 @@
                 "name": "fas fa-trophy",
                 "color": "#fff",
                 "backgroundColor": "#3498db"
-            },
-            "optional_dependencies": [
-                "flarum/likes",
-                "flarum/tags",
-                "flarum/approval",
-                "fof/reactions",
-                "fof/best-answer",
-                "fof/badges",
-                "fof/gamification"
-            ]
+            }
         },
         "flarum-cli": {
             "modules": {
@@ -102,13 +85,14 @@
         "test:setup": "Sets up a database for use with integration tests. Execute this only once.",
         "analyse:phpstan": "Run PHPStan static analysis."
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/lowseekai/point-system.git"
+        }
+    ],
     "require-dev": {
         "flarum/testing": "^2.0.0-beta",
-        "flarum/phpstan": "^2.0.0-beta",
-        "flarum/likes": "*",
-        "flarum/tags": "*",
-        "fof/reactions": "*",
-        "fof/best-answer": "*",
-        "fof/gamification": "*"
+        "flarum/phpstan": "^2.0.0-beta"
     }
 }

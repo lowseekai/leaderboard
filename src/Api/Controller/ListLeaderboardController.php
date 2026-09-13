@@ -3,21 +3,20 @@
 namespace HuseyinFiliz\Leaderboard\Api\Controller;
 
 use Carbon\Carbon;
+use Flarum\Http\RequestUtil;
 use Flarum\Http\SlugManager;
 use Flarum\Http\UrlGenerator;
-use Flarum\Http\RequestUtil;
 use Flarum\Settings\SettingsRepositoryInterface;
 use Flarum\User\Exception\PermissionDeniedException;
 use Flarum\User\User;
 use HuseyinFiliz\Leaderboard\Api\Data\LeaderboardEntryData;
-use HuseyinFiliz\Leaderboard\Model\LeaderboardPoint;
-use HuseyinFiliz\Leaderboard\Model\LeaderboardUserTotal;
-use HuseyinFiliz\Leaderboard\Service\PointService;
 use Illuminate\Support\Arr;
 use Laminas\Diactoros\Response\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Ramon\PointSystem\Model\PointTransaction;
+use Ramon\PointSystem\Model\UserPoints;
 
 class ListLeaderboardController implements RequestHandlerInterface
 {
@@ -28,7 +27,6 @@ class ListLeaderboardController implements RequestHandlerInterface
     public function __construct(
         protected SettingsRepositoryInterface $settings,
         protected UrlGenerator $url,
-        protected PointService $pointService,
         protected SlugManager $slugManager
     ) {
     }
@@ -45,7 +43,6 @@ class ListLeaderboardController implements RequestHandlerInterface
         $filter = Arr::get($params, 'filter', []);
         $period = is_array($filter) ? Arr::get($filter, 'period', 'all') : 'all';
         $section = is_array($filter) ? Arr::get($filter, 'section', '') : '';
-
         $excludedGroupIds = $this->getExcludedGroupIds();
 
         switch ($section) {
@@ -74,19 +71,19 @@ class ListLeaderboardController implements RequestHandlerInterface
         if ($period === 'all') {
             $results = $this->getAllTimeResults($offset, $limit, $excludedGroupIds);
         } else {
-            $periodStart = $this->getPeriodStart($period);
-            $results = $this->getPeriodResults($periodStart, $offset, $limit, $excludedGroupIds);
+            $results = $this->getPeriodResults(
+                $this->getPeriodStart($period),
+                $offset,
+                $limit,
+                $excludedGroupIds
+            );
         }
 
-        $entries = $results['entries'];
-        $total = $results['total'];
-
-        // Build JSON:API response
         $data = [];
         $included = [];
         $seenUsers = [];
 
-        foreach ($entries as $entry) {
+        foreach ($results['entries'] as $entry) {
             $entryData = [
                 'type' => 'leaderboard-entries',
                 'id' => (string) $entry->id,
@@ -118,13 +115,12 @@ class ListLeaderboardController implements RequestHandlerInterface
             $response['included'] = $included;
         }
 
-        // Pagination links
         if ($section === 'honorable') {
             $sectionOffset = $this->extractOffset($params);
-            $hasMore = $total > $offset + count($entries);
+            $hasMore = $results['total'] > $offset + count($data);
             $response['links'] = $this->buildPaginationLinks($request, $sectionOffset, $limit, $hasMore);
         } elseif ($section === '') {
-            $hasMore = $total > $offset + count($entries);
+            $hasMore = $results['total'] > $offset + count($data);
             $response['links'] = $this->buildPaginationLinks($request, $offset, $limit, $hasMore);
         }
 
@@ -158,8 +154,12 @@ class ListLeaderboardController implements RequestHandlerInterface
         ];
     }
 
-    protected function buildPaginationLinks(ServerRequestInterface $request, int $offset, int $limit, bool $hasMore): array
-    {
+    protected function buildPaginationLinks(
+        ServerRequestInterface $request,
+        int $offset,
+        int $limit,
+        bool $hasMore
+    ): array {
         $links = [];
         $baseUrl = $this->url->to('api')->route('huseyinfiliz-leaderboard.api.index');
         $queryParams = $request->getQueryParams();
@@ -167,18 +167,18 @@ class ListLeaderboardController implements RequestHandlerInterface
         if ($offset > 0) {
             $firstParams = $queryParams;
             $firstParams['page'] = ['offset' => 0];
-            $links['first'] = $baseUrl . '?' . http_build_query($firstParams, '', '&', PHP_QUERY_RFC3986);
+            $links['first'] = $baseUrl.'?'.http_build_query($firstParams, '', '&', PHP_QUERY_RFC3986);
 
             $prevOffset = max(0, $offset - $limit);
             $prevParams = $queryParams;
             $prevParams['page'] = ['offset' => $prevOffset];
-            $links['prev'] = $baseUrl . '?' . http_build_query($prevParams, '', '&', PHP_QUERY_RFC3986);
+            $links['prev'] = $baseUrl.'?'.http_build_query($prevParams, '', '&', PHP_QUERY_RFC3986);
         }
 
         if ($hasMore) {
             $nextParams = $queryParams;
             $nextParams['page'] = ['offset' => $offset + $limit];
-            $links['next'] = $baseUrl . '?' . http_build_query($nextParams, '', '&', PHP_QUERY_RFC3986);
+            $links['next'] = $baseUrl.'?'.http_build_query($nextParams, '', '&', PHP_QUERY_RFC3986);
         }
 
         return $links;
@@ -199,28 +199,25 @@ class ListLeaderboardController implements RequestHandlerInterface
         return max(1, min($limit, $this->maxLimit));
     }
 
+    /**
+     * All-time rankings use the authoritative lifetime value from Point System.
+     */
     protected function getAllTimeResults(int $offset, int $limit, array $excludedGroupIds): array
     {
-        $query = LeaderboardUserTotal::query()
-            ->where('points_total', '>', 0)
-            ->orderBy('points_total', 'desc')
+        $query = UserPoints::query()
+            ->where('lifetime', '>', 0)
+            ->orderByDesc('lifetime')
             ->orderBy('user_id');
 
-        if (!empty($excludedGroupIds)) {
-            $query->whereNotIn('user_id', function ($sub) use ($excludedGroupIds) {
-                $sub->select('user_id')
-                    ->from('group_user')
-                    ->whereIn('group_id', $excludedGroupIds);
-            });
-        }
+        $this->applyGroupExclusion($query, $excludedGroupIds);
 
         $total = $query->count();
         $rows = $query->offset($offset)->limit($limit)->get();
 
         $userIds = $rows->pluck('user_id')->all();
         $users = User::whereIn('id', $userIds)->get()->keyBy('id');
-
         $entries = [];
+
         foreach ($rows as $index => $row) {
             $user = $users->get($row->user_id);
             if (!$user) {
@@ -228,8 +225,8 @@ class ListLeaderboardController implements RequestHandlerInterface
             }
 
             $entries[] = new LeaderboardEntryData(
-                $user->id,
-                $row->points_total,
+                (int) $user->id,
+                (int) $row->lifetime,
                 $offset + $index + 1,
                 $user
             );
@@ -238,48 +235,41 @@ class ListLeaderboardController implements RequestHandlerInterface
         return ['entries' => $entries, 'total' => $total];
     }
 
-    protected function getPeriodResults(Carbon $periodStart, int $offset, int $limit, array $excludedGroupIds): array
-    {
-        $pointsCase = $this->pointService->buildPointsCaseSql();
-
-        $query = LeaderboardPoint::query()
-            ->selectRaw("user_id, SUM({$pointsCase['sql']}) as period_points", $pointsCase['bindings'])
+    /**
+     * Period rankings sum Point System's transaction ledger, including
+     * negative reversal transactions.
+     */
+    protected function getPeriodResults(
+        Carbon $periodStart,
+        int $offset,
+        int $limit,
+        array $excludedGroupIds
+    ): array {
+        $query = PointTransaction::query()
+            ->selectRaw('user_id, SUM(amount) as period_points')
             ->where('created_at', '>=', $periodStart)
             ->groupBy('user_id')
-            ->havingRaw("SUM({$pointsCase['sql']}) > 0", $pointsCase['bindings'])
+            ->havingRaw('SUM(amount) > 0')
             ->orderByDesc('period_points')
             ->orderBy('user_id');
 
-        if (!empty($excludedGroupIds)) {
-            $query->whereNotIn('user_id', function ($sub) use ($excludedGroupIds) {
-                $sub->select('user_id')
-                    ->from('group_user')
-                    ->whereIn('group_id', $excludedGroupIds);
-            });
-        }
+        $this->applyGroupExclusion($query, $excludedGroupIds);
 
-        $countQuery = LeaderboardPoint::query()
-            ->selectRaw("user_id")
+        $countQuery = PointTransaction::query()
+            ->selectRaw('user_id')
             ->where('created_at', '>=', $periodStart)
             ->groupBy('user_id')
-            ->havingRaw("SUM({$pointsCase['sql']}) > 0", $pointsCase['bindings']);
+            ->havingRaw('SUM(amount) > 0');
 
-        if (!empty($excludedGroupIds)) {
-            $countQuery->whereNotIn('user_id', function ($sub) use ($excludedGroupIds) {
-                $sub->select('user_id')
-                    ->from('group_user')
-                    ->whereIn('group_id', $excludedGroupIds);
-            });
-        }
+        $this->applyGroupExclusion($countQuery, $excludedGroupIds);
 
         $total = $countQuery->getQuery()->getCountForPagination(['user_id']);
-
         $rows = $query->offset($offset)->limit($limit)->get();
 
         $userIds = $rows->pluck('user_id')->all();
         $users = User::whereIn('id', $userIds)->get()->keyBy('id');
-
         $entries = [];
+
         foreach ($rows as $index => $row) {
             $user = $users->get($row->user_id);
             if (!$user) {
@@ -287,7 +277,7 @@ class ListLeaderboardController implements RequestHandlerInterface
             }
 
             $entries[] = new LeaderboardEntryData(
-                $user->id,
+                (int) $user->id,
                 (int) $row->period_points,
                 $offset + $index + 1,
                 $user
@@ -301,32 +291,39 @@ class ListLeaderboardController implements RequestHandlerInterface
     {
         $now = Carbon::now();
 
-        switch ($period) {
-            case 'daily':
-                return $now->copy()->startOfDay();
-            case 'weekly':
-                return $now->copy()->startOfWeek(Carbon::MONDAY);
-            case 'monthly':
-                return $now->copy()->startOfMonth();
-            case 'quarterly':
-                return $now->copy()->firstOfQuarter();
-            case 'yearly':
-                return $now->copy()->startOfYear();
-            default:
-                return $now->copy()->startOfDay();
-        }
+        return match ($period) {
+            'daily' => $now->copy()->startOfDay(),
+            'weekly' => $now->copy()->startOfWeek(Carbon::MONDAY),
+            'monthly' => $now->copy()->startOfMonth(),
+            'quarterly' => $now->copy()->firstOfQuarter(),
+            'yearly' => $now->copy()->startOfYear(),
+            default => $now->copy()->startOfDay(),
+        };
     }
 
     protected function getExcludedGroupIds(): array
     {
-        $value = $this->settings->get('huseyinfiliz-leaderboard.excluded_groups', '');
+        $value = $this->settings->get('huseyinfiliz-leaderboard.excluded_groups', '[]');
 
         if (empty($value)) {
             return [];
         }
 
-        $decoded = json_decode($value, true);
+        $decoded = is_array($value) ? $value : json_decode($value, true);
 
-        return is_array($decoded) ? $decoded : [];
+        return is_array($decoded) ? array_map('intval', $decoded) : [];
+    }
+
+    protected function applyGroupExclusion($query, array $excludedGroupIds): void
+    {
+        if (empty($excludedGroupIds)) {
+            return;
+        }
+
+        $query->whereNotIn('user_id', function ($sub) use ($excludedGroupIds) {
+            $sub->select('user_id')
+                ->from('group_user')
+                ->whereIn('group_id', $excludedGroupIds);
+        });
     }
 }
