@@ -12,7 +12,6 @@
 namespace HuseyinFiliz\Leaderboard;
 
 use Flarum\Api\Context;
-use Flarum\Api\Endpoint;
 use Flarum\Api\Resource;
 use Flarum\Api\Schema;
 use Flarum\Extend;
@@ -40,41 +39,9 @@ return [
                 ),
         ]),
 
-    (new Extend\ApiResource(Resource\UserResource::class))
-        ->fields(fn () => [
-            Schema\Integer::make('leaderboardPoints')
-                ->get(fn ($user) => $user->pointsBalance?->lifetime ?? 0),
-        ])
-        ->endpoint(Endpoint\Show::class, function (Endpoint\Show $endpoint) {
-            return $endpoint->eagerLoad(['pointsBalance']);
-        })
-        ->endpoint(Endpoint\Index::class, function (Endpoint\Index $endpoint) {
-            return $endpoint->eagerLoad(['pointsBalance']);
-        }),
-
-    (new Extend\ApiResource(Resource\DiscussionResource::class))
-        ->endpoint(Endpoint\Index::class, function (Endpoint\Index $endpoint) {
-            return $endpoint->eagerLoad([
-                'user.pointsBalance',
-                'lastPostedUser.pointsBalance',
-                'mostRelevantPost.user.pointsBalance',
-            ]);
-        })
-        ->endpoint(Endpoint\Show::class, function (Endpoint\Show $endpoint) {
-            return $endpoint->eagerLoad(['posts.user.pointsBalance']);
-        }),
-
-    (new Extend\ApiResource(Resource\PostResource::class))
-        ->endpoint(Endpoint\Index::class, function (Endpoint\Index $endpoint) {
-            return $endpoint->eagerLoad(['user.pointsBalance']);
-        })
-        ->endpoint(Endpoint\Show::class, function (Endpoint\Show $endpoint) {
-            return $endpoint->eagerLoad(['user.pointsBalance']);
-        }),
-
     (new Extend\Settings())
-        ->default('huseyinfiliz-leaderboard.leaderboard_name', 'Leaderboard')
-        ->default('huseyinfiliz-leaderboard.points_label', 'Points')
+        ->default('huseyinfiliz-leaderboard.leaderboard_name', '排行榜')
+        ->default('huseyinfiliz-leaderboard.points_label', '积分')
         ->default('huseyinfiliz-leaderboard.excluded_groups', '[]')
         ->serializeToForum('huseyinfiliz-leaderboard.leaderboard_name', 'huseyinfiliz-leaderboard.leaderboard_name')
         ->serializeToForum('huseyinfiliz-leaderboard.points_label', 'huseyinfiliz-leaderboard.points_label'),

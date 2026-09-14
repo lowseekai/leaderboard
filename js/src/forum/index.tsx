@@ -3,7 +3,6 @@ import app from 'flarum/forum/app';
 import { extend } from 'flarum/common/extend';
 import IndexPage from 'flarum/forum/components/IndexPage';
 import LinkButton from 'flarum/common/components/LinkButton';
-import UserCard from 'flarum/forum/components/UserCard';
 
 import LeaderboardPage from './components/LeaderboardPage';
 
@@ -19,7 +18,7 @@ app.initializers.add('huseyinfiliz/leaderboard', () => {
   extend(IndexSidebar.prototype, 'navItems', function (items) {
     if (!app.forum.attribute('canViewLeaderboard')) return;
 
-    const leaderboardName = app.forum.attribute('huseyinfiliz-leaderboard.leaderboard_name') || 'Leaderboard';
+    const leaderboardName = app.forum.attribute('huseyinfiliz-leaderboard.leaderboard_name') || '排行榜';
 
     items.add(
       'huseyinfiliz-leaderboard',
@@ -27,25 +26,6 @@ app.initializers.add('huseyinfiliz/leaderboard', () => {
         {leaderboardName}
       </LinkButton>,
       10
-    );
-  });
-
-  // Show leaderboard points on user card
-  extend(UserCard.prototype, 'infoItems', function (items) {
-    const user = (this.attrs as any).user;
-    if (!user) return;
-
-    const points = user.attribute('leaderboardPoints');
-    if (points === undefined || points === null) return;
-
-    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || 'Points';
-
-    items.add(
-      'huseyinfiliz-leaderboard-points',
-      <span className="UserCard-leaderboardPoints">
-        <i className="fas fa-trophy" /> {points} {pointsLabel}
-      </span>,
-      -10
     );
   });
 });

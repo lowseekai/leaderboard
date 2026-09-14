@@ -18,7 +18,7 @@ export default class TopContendersGrid extends Component<ContendersAttrs> {
       return null;
     }
 
-    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || 'Points';
+    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || '积分';
 
     return (
       <div className="LeaderboardContenders">

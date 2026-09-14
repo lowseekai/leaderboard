@@ -67,11 +67,11 @@ export default class LeaderboardSettingsPage extends ExtensionPage {
       <Form>
         <div className="Form-group">
           <label>{app.translator.trans('huseyinfiliz-leaderboard.admin.settings.leaderboard_name_label')}</label>
-          <input className="FormControl" bidi={this.setting('huseyinfiliz-leaderboard.leaderboard_name')} placeholder="Leaderboard" />
+          <input className="FormControl" bidi={this.setting('huseyinfiliz-leaderboard.leaderboard_name')} placeholder="排行榜" />
         </div>
         <div className="Form-group">
           <label>{app.translator.trans('huseyinfiliz-leaderboard.admin.settings.points_label_label')}</label>
-          <input className="FormControl" bidi={this.setting('huseyinfiliz-leaderboard.points_label')} placeholder="Points" />
+          <input className="FormControl" bidi={this.setting('huseyinfiliz-leaderboard.points_label')} placeholder="积分" />
           <p className="helpText">{app.translator.trans('huseyinfiliz-leaderboard.admin.settings.points_label_help')}</p>
         </div>
         <div className="Form-group">

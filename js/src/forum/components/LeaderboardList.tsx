@@ -15,7 +15,7 @@ interface ListAttrs {
 export default class LeaderboardList extends Component<ListAttrs> {
   view() {
     const { entries, state } = this.attrs;
-    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || 'Points';
+    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || '积分';
 
     return (
       <div className="LeaderboardHonorable">
