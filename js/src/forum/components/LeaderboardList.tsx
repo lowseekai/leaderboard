@@ -21,7 +21,7 @@ export default class LeaderboardList extends Component<ListAttrs> {
       <div className="LeaderboardHonorable">
         <h3 className="LeaderboardHonorable-title">
           <i className="fas fa-list-ol" />
-          {app.translator.trans('huseyinfiliz-leaderboard.forum.honorable.title')}
+          其他排名
         </h3>
         <div className="LeaderboardHonorable-grid">
           {entries.map((entry) => (

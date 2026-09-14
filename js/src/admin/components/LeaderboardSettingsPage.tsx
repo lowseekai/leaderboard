@@ -72,10 +72,10 @@ export default class LeaderboardSettingsPage extends ExtensionPage {
         <div className="Form-group">
           <label>{app.translator.trans('huseyinfiliz-leaderboard.admin.settings.points_label_label')}</label>
           <input className="FormControl" bidi={this.setting('huseyinfiliz-leaderboard.points_label')} placeholder="积分" />
-          <p className="helpText">{app.translator.trans('huseyinfiliz-leaderboard.admin.settings.points_label_help')}</p>
+          <p className="helpText">此项只会修改排行榜中显示的积分单位，积分数值由积分系统统一管理。</p>
         </div>
         <div className="Form-group">
-          <p className="helpText">{app.translator.trans('huseyinfiliz-leaderboard.admin.settings.point_system_notice')}</p>
+          <p className="helpText">排行榜读取积分系统提供的累计积分和周期积分，只用于统计展示，不会发放或修改积分。</p>
         </div>
         <div className="Form-group">{this.submitButton()}</div>
       </Form>

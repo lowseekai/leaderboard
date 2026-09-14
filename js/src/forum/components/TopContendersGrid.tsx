@@ -24,7 +24,7 @@ export default class TopContendersGrid extends Component<ContendersAttrs> {
       <div className="LeaderboardContenders">
         <h3 className="LeaderboardContenders-title">
           <i className="fas fa-medal" />
-          {app.translator.trans('huseyinfiliz-leaderboard.forum.contenders.title')}
+          排行榜前列
         </h3>
         <div className="LeaderboardContenders-grid">
           {entries.map((entry) => {
