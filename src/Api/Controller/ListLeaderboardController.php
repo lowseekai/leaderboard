@@ -20,6 +20,8 @@ use Ramon\PointSystem\Model\UserPoints;
 
 class ListLeaderboardController implements RequestHandlerInterface
 {
+    private const BUSINESS_TIMEZONE = 'Asia/Shanghai';
+
     protected int $limit = 20;
 
     protected int $maxLimit = 50;
@@ -289,9 +291,9 @@ class ListLeaderboardController implements RequestHandlerInterface
 
     protected function getPeriodStart(string $period): Carbon
     {
-        $now = Carbon::now();
+        $now = Carbon::now(self::BUSINESS_TIMEZONE);
 
-        return match ($period) {
+        $periodStart = match ($period) {
             'daily' => $now->copy()->startOfDay(),
             'weekly' => $now->copy()->startOfWeek(Carbon::MONDAY),
             'monthly' => $now->copy()->startOfMonth(),
@@ -299,6 +301,8 @@ class ListLeaderboardController implements RequestHandlerInterface
             'yearly' => $now->copy()->startOfYear(),
             default => $now->copy()->startOfDay(),
         };
+
+        return $periodStart->utc();
     }
 
     protected function getExcludedGroupIds(): array

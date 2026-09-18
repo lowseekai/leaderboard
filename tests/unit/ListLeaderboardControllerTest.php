@@ -63,6 +63,8 @@ class ListLeaderboardControllerTest extends TestCase
     #[Test]
     public function monthly_period_starts_at_the_first_day_of_the_current_month(): void
     {
+        Carbon::setTestNow(Carbon::create(2026, 9, 18, 1, 0, 0, 'Asia/Shanghai'));
+
         $controller = new ListLeaderboardController(
             m::mock(SettingsRepositoryInterface::class),
             m::mock(UrlGenerator::class),
@@ -73,6 +75,9 @@ class ListLeaderboardControllerTest extends TestCase
         $periodStart = $method->invoke($controller, 'monthly');
 
         $this->assertInstanceOf(Carbon::class, $periodStart);
-        $this->assertTrue($periodStart->isStartOfMonth());
+        $this->assertSame('UTC', $periodStart->getTimezone()->getName());
+        $this->assertSame('2026-08-31 16:00:00', $periodStart->format('Y-m-d H:i:s'));
+
+        Carbon::setTestNow();
     }
 }
