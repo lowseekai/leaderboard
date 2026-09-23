@@ -41,7 +41,7 @@ export default class LeaderboardPage extends Page<IPageAttrs, LeaderboardState> 
   }
 
   hero(): Mithril.Children {
-    const leaderboardName = app.forum.attribute('huseyinfiliz-leaderboard.leaderboard_name') || 'Leaderboard';
+    const leaderboardName = app.forum.attribute('huseyinfiliz-leaderboard.leaderboard_name') || '排行榜';
 
     return (
       <header className="Hero LeaderboardHero">

@@ -18,7 +18,7 @@ export default class PodiumSection extends Component<PodiumAttrs> {
       return null;
     }
 
-    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || 'Points';
+    const pointsLabel = app.forum.attribute('huseyinfiliz-leaderboard.points_label') || '积分';
 
     // Display order: 2nd, 1st, 3rd (desktop uses CSS order, mobile overrides)
     const ordered = [entries[1], entries[0], entries[2]].filter(Boolean);

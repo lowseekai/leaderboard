@@ -1,0 +1,47 @@
+huseyinfiliz-leaderboard:
+  admin:
+    tabs:
+      general: 通用
+      exclusions: 排除项
+    permissions:
+      view_leaderboard: 查看排行榜
+    modals:
+      save: 保存
+      cancel: 取消
+      select_groups: 选择用户组
+      none_selected: 未选择
+    settings:
+      leaderboard_name_label: 排行榜名称
+      points_label_label: 积分标签
+      points_label_help: 此项只会修改排行榜中显示的积分单位，积分数值由积分系统统一管理。
+      point_system_notice: 排行榜读取积分系统提供的累计积分和周期积分，只用于统计展示，不会发放或修改积分。
+      excluded_groups_label: 排除用户组
+      excluded_groups_help: 选中用户组中的成员不会显示在排行榜中。
+
+  forum:
+    nav:
+      leaderboard: 排行榜
+    permission_denied: 你没有权限查看排行榜。
+    period:
+      daily: 今日
+      weekly: 本周
+      monthly: 本月
+      quarterly: 本季度
+      yearly: 今年
+      all: 总榜
+    podium:
+      first: 第 1 名
+      second: 第 2 名
+      third: 第 3 名
+      stat_comments: 回复
+      stat_discussions: 讨论
+      stat_badges: 徽章
+    contenders:
+      title: 排行榜前列
+    honorable:
+      title: 其他排名
+    list:
+      rank: 排名
+      points: "{points} {label}"
+      load_more: 加载更多
+      no_results: 这个时间段暂无排行数据。
